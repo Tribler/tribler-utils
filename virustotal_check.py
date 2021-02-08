@@ -11,7 +11,7 @@ from virustotal import Virustotal
 API_KEY = os.environ.get('VIRUSTOTAL_API_KEY', None)
 INSTALLER_FILE_SUFFIX = os.environ.get("INSTALLER_FILE_SUFFIX", "x86.exe")
 WAIT_TIME = 2 * 60  # 2 minutes
-WORKSPACE_DIR = os.environ.get('WORKSPACE', '.')
+WORKSPACE_DIR = os.environ.get('WORKSPACE_DIR', '.')
 
 
 def find_file(base_dir, file_suffix_with_extension):
@@ -108,4 +108,5 @@ if __name__ == '__main__':
 
     for installer_file in installer_files:
         installer_file_fullpath = str(installer_file.absolute())
+        print("Checking file:", installer_file_fullpath)
         run_analysis(installer_file_fullpath)
