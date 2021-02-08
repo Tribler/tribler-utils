@@ -62,7 +62,12 @@ def is_file_safe(analysis_json):
 
 def write_analysis_result_to_file(analysis_json, filename):
     file_hash = get_file_hash(filename)
-    with open(filename + ".analysis.json", 'w') as file:
+    print(f"VirusTotal URL: https://www.virustotal.com/gui/file/{file_hash}/detection")
+
+    analysis_filename = filename + ".analysis.json"
+    print(f"Analysis results file: {analysis_filename}")
+
+    with open(analysis_filename, 'w') as file:
         analysis_json['filename'] = filename
         analysis_json['filehash'] = file_hash
         file.write(json.dumps(analysis_json, indent=1))
@@ -73,9 +78,6 @@ def run_analysis(filename):
 
     # Since the size of the file will be higher than 32MB, an upload url is required.
     upload_url = get_upload_url(vt_api)
-    print(f"upload url: {upload_url}")
-
-    # Upload the file to the upload URL
     upload_id = upload_file(vt_api, upload_url, filename)
     print(f"upload id: {upload_id}")
 
