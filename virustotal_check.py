@@ -14,8 +14,8 @@ WAIT_TIME = 2 * 60  # 2 minutes
 WORKSPACE_DIR = os.environ.get('WORKSPACE_DIR', '.')
 
 
-def find_file(base_dir, file_suffix_with_extension):
-    return list(Path(base_dir).resolve().glob('*' + file_suffix_with_extension))
+def find_file(base_path, file_suffix_with_extension):
+    return list(base_path.glob('*' + file_suffix_with_extension))
 
 
 def get_file_hash(filename):
@@ -106,7 +106,12 @@ def run_analysis(filename):
 
 
 if __name__ == '__main__':
-    installer_files = find_file(WORKSPACE_DIR, INSTALLER_FILE_SUFFIX)
+    base_path = Path(WORKSPACE_DIR).resolve().absolute()
+    print(f"Workspace directory: {base_path}")
+    print(f"Installer file suffix: {INSTALLER_FILE_SUFFIX}")
+
+    installer_files = find_file(base_path, INSTALLER_FILE_SUFFIX)
+    print(f"Installer files: {installer_files}")
 
     for installer_file in installer_files:
         installer_file_fullpath = str(installer_file.absolute())
