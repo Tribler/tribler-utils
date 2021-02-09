@@ -15,7 +15,7 @@ WORKSPACE_DIR = os.environ.get('WORKSPACE_DIR', '.')
 
 
 def find_file(base_dir, file_suffix_with_extension):
-    return list(Path(base_dir).glob('*' + file_suffix_with_extension))
+    return list(Path(base_dir).resolve().glob('*' + file_suffix_with_extension))
 
 
 def get_file_hash(filename):
