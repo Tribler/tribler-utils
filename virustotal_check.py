@@ -10,8 +10,10 @@ from virustotal import Virustotal
 
 API_KEY = os.environ.get('VIRUSTOTAL_API_KEY', None)
 INSTALLER_FILE_SUFFIX = os.environ.get("INSTALLER_FILE_SUFFIX", "x86.exe")
-WAIT_TIME = 2 * 60  # 2 minutes
 WORKSPACE_DIR = os.environ.get('WORKSPACE_DIR', '.')
+
+WAIT_TIME = 2 * 60  # 2 MINUTES
+MAX_WAIT_COUNT = 5  # Wait 5 times -> 10 minutes max
 
 
 def find_file(base_path, file_suffix_with_extension):
@@ -60,10 +62,7 @@ def is_file_safe(analysis_json):
     return False
 
 
-def write_analysis_result_to_file(analysis_json, filename):
-    file_hash = get_file_hash(filename)
-    print(f"VirusTotal URL: https://www.virustotal.com/gui/file/{file_hash}/detection")
-
+def write_analysis_result_to_file(analysis_json, filename, file_hash):
     analysis_filename = filename + ".analysis.json"
     print(f"Analysis results file: {analysis_filename}")
 
@@ -79,10 +78,13 @@ def run_analysis(filename):
     # Since the size of the file will be higher than 32MB, an upload url is required.
     upload_url = get_upload_url(vt_api)
     upload_id = upload_file(vt_api, upload_url, filename)
-    print(f"upload id: {upload_id}")
+    print(f"File upload id: {upload_id}")
+
+    file_hash = get_file_hash(filename)
+    print(f"VirusTotal Results URL: https://www.virustotal.com/gui/file/{file_hash}/detection")
 
     # It takes time to complete the analysis, poll if analysis is complete.
-    num_waits = 3   # wait for three times.
+    num_waits = MAX_WAIT_COUNT
 
     while num_waits > 0:
         analysis_json = get_file_analysis(vt_api, upload_id)
@@ -90,7 +92,7 @@ def run_analysis(filename):
 
         if analysis_status == 'completed':
             # write the analysis result to a file for reference
-            write_analysis_result_to_file(analysis_json, filename)
+            write_analysis_result_to_file(analysis_json, filename, file_hash)
 
             # check if the file is safe based on the results
             if is_file_safe(analysis_json):
@@ -104,6 +106,11 @@ def run_analysis(filename):
         time.sleep(WAIT_TIME)
         num_waits -= 1
 
+    # If still not finished, then simply fail the job
+    print("\nDid not receive the reports yet. Failing the job")
+    print(f"VirusTotal Results URL: https://www.virustotal.com/gui/file/{file_hash}/detection")
+    sys.exit(-1)
+
 
 if __name__ == '__main__':
     base_path = Path(WORKSPACE_DIR).resolve().absolute()
@@ -111,7 +118,9 @@ if __name__ == '__main__':
     print(f"Installer file suffix: {INSTALLER_FILE_SUFFIX}")
 
     installer_files = find_file(base_path, INSTALLER_FILE_SUFFIX)
-    print(f"Installer files: {installer_files}")
+    if not installer_files:
+        print(f"No installer files found. Exiting...")
+        sys.exit(1)
 
     for installer_file in installer_files:
         installer_file_fullpath = str(installer_file.absolute())
