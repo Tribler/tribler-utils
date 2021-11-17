@@ -12,6 +12,20 @@ API_KEY = os.environ.get('VIRUSTOTAL_API_KEY', None)
 INSTALLER_FILE_SUFFIX = os.environ.get("INSTALLER_FILE_SUFFIX", "x86.exe")
 WORKSPACE_DIR = os.environ.get('WORKSPACE_DIR', '.')
 
+# A space-separated list of antiviruses that can produce false alarms. Example: "Antiy-AVL VBA32"
+POSSIBLE_FALSE_ALARMS = os.environ.get('POSSIBLE_FALSE_ALARMS', '').split()
+print(f'Antiviruses that can generate false alarms: {POSSIBLE_FALSE_ALARMS}')
+
+# A threshold on the number of possible false alarms
+# If an antivirus name not in the POSSIBLE_FALSE_ALARMS list, its alarm never considered as a false alarm
+FALSE_ALARMS_THRESHOLD = os.environ.get('FALSE_ALARMS_THRESHOLD', '0')
+try:
+    FALSE_ALARMS_THRESHOLD = int(FALSE_ALARMS_THRESHOLD)
+except ValueError:
+    print(f'FALSE_ALARMS_THRESHOLD environment variable should contain a number. Got: {FALSE_ALARMS_THRESHOLD}')
+    sys.exit(1)
+
+
 WAIT_TIME = 2 * 60  # 2 MINUTES
 MAX_WAIT_COUNT = 5  # Wait 5 times -> 10 minutes max
 
@@ -57,9 +71,27 @@ def get_file_analysis(vt_api, upload_id):
 
 def is_file_safe(analysis_json):
     stats = analysis_json['attributes']['stats']
-    if stats['malicious'] == 0 and stats['suspicious'] == 0:
+    malicious: int = stats['malicious']
+    suspicious: int = stats['suspicious']
+
+    if not malicious and not suspicious:
         return True
-    return False
+
+    if malicious + suspicious > FALSE_ALARMS_THRESHOLD:
+        return False
+
+    false_alarms = []
+    for av_name, av_result in analysis_json['attributes']['results'].items():
+        if av_result['category'] in ('malicious', 'suspicious'):
+            if av_name in POSSIBLE_FALSE_ALARMS:
+                false_alarms.append(av_name)
+            else:
+                return False
+
+    if false_alarms:
+        print(f"False alarms: {', '.join(false_alarms)}")
+
+    return True
 
 
 def write_analysis_result_to_file(analysis_json, filename, file_hash):
