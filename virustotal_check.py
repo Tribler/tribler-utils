@@ -27,7 +27,7 @@ except ValueError:
 
 
 WAIT_TIME = 2 * 60  # 2 MINUTES
-MAX_WAIT_COUNT = 5  # Wait 5 times -> 10 minutes max
+MAX_WAIT_COUNT = 10  # Wait 10 times -> 20 minutes max
 
 
 def find_file(base_path, file_suffix_with_extension):
